@@ -1,0 +1,103 @@
+<!doctype html>
+
+<head>
+    <meta charset="utf-8">
+
+    <title>test</title>
+
+</head>
+
+<body>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://xiangyuecn.github.io/Recorder/recorder.mp3.min.js"></script>
+    <script src="https://xiangyuecn.github.io/Recorder/recorder.wav.min.js"></script>
+    <input type="button" onclick="startRec()" value="開始錄音">
+    <hr>
+    <input type="button" onclick="playRec()" value="結束並播放">
+    <input type="button" onclick="uploadRec()" value="結束並上傳">
+    <script>
+        var rec;
+        function startRec() {
+            rec = Recorder({
+                type: "wav", sampleRate: 16000, bitRate: 16 //mp3格式，指定采样率hz、比特率kbps，其他参数使用默认配置；注意：是数字的参数必须提供数字，不要用字符串；需要使用的type类型，需提前把格式支持文件加载进来，比如使用wav格式需要提前加载wav.js编码引擎
+                , onProcess: function (buffers, powerLevel, bufferDuration, bufferSampleRate, newBufferIdx, asyncEnd) {
+                    //录音实时回调，大约1秒调用12次本回调
+                    //可利用extensions/waveview.js扩展实时绘制波形
+                    //可利用extensions/sonic.js扩展实时变速变调，此扩展计算量巨大，onProcess需要返回true开启异步模式
+                }
+            });
+            //打開麥克風授權獲得相關資源 
+            rec.open(function () {
+                //開始錄音 
+                rec.start();
+            }, function (msg, isUserNotAllow) { //用戶拒絕了權限或瀏覽器不支持 
+                alert((isUserNotAllow ? "用戶拒絕了權限，" : "") + "無法錄音:" + msg);
+            });
+        }; 
+    </script>
+
+    <script>
+        function uploadRec() {
+            //停止錄音，得到了錄音文件blob二進位對象，想幹嘛就幹嘛 
+            rec.stop(function (blob, duration) {
+                /* blob文件對象，可以用FileReader讀取出內容 ，或者用FormData上傳，本例直接上傳二進位文件 ，
+                對於普通application/x-www-form-urlencoded表單上傳 ，請參考github裡面的例子 */
+                var form = new FormData();
+                form.append("upfile", blob, "recorder.wav");
+                //和普通form表單並無二致，後端接收到upfile參數的文件，文件名為recorder.mp3 //直接用ajax上傳
+                console.log(form);
+                $.ajax({
+                    //上传接口地址,
+                    url: 'http://140.118.127.72:8787/upload_wav' ,
+                    type: "POST",
+                    contentType: false, //让xhr自动处理Content-Type header，multipart/form-data需要生成随机的boundary
+                    processData: false,//不要处理data，让xhr自动处理
+                    data: form,
+                    success: function (v) {
+                        console.log("上传成功", v);
+                    },
+                    error: function (s) {
+                        console.error("上传失败", s);
+                    },
+                });
+
+                // var xhr = new XMLHttpRequest();
+                // xhr.open("POST", "http://140.118.127.72:8787/upload_wav");
+                // //這個假地址在控制台network中能看到請求數據和格式，請求結果無關緊要 
+                // xhr.onreadystatechange = function () {
+                //     if (xhr.readyState == 4) {
+                //         alert(xhr.status == 200 ? "上傳成功" : "測試請先打開瀏覽器控制台，然後重新錄音，在network選項卡裡面就能看到上傳請求數據和格式了");
+                //     }
+                // }
+                // xhr.send(form);
+            }, function (msg) { 
+                alert("錄音失敗:" + msg); 
+            });
+        };
+    </script>
+
+    <script>
+        function playRec() {
+            //停止錄音，得到了錄音文件blob二進位對象，想幹嘛就幹嘛 
+            rec.stop(function (blob, duration) {
+                var audio = document.createElement("audio");
+                audio.controls = true;
+                document.body.appendChild(audio);
+                //非常簡單的就能拿到blob音頻url 
+                audio.src = URL.createObjectURL(blob);
+                audio.play();
+            }, function (msg) {
+                alert("錄音失敗:" + msg);
+            });
+        };
+    </script>
+
+
+
+
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,312 @@
+<html>
+  <head>
+    <div>
+      <style type="text/css">
+        @import "web_css.css";
+      </style>
+    </div>
+  </head>
+  <body>
+    <script>
+      function ptt_crawler() {
+        ptt_url = document.getElementById("ptt_url").value;
+        console.log(ptt_url);
+        $.ajax({
+          type: "POST",
+          crossDomain: true,
+          headers: {
+            accept: "application/json",
+            "Access-Control-Allow-Origin": "*/*",
+          },
+          url: "http://140.118.127.72:8787/crawler_ptt",
+          data: {
+            ptt: ptt_url,
+          },
+          datatype: "json",
+          success: function (response) {
+            console.log(response);
+            document.getElementById("ptt_show").value = response["Content"];
+            document.getElementById("ptt_tags").innerHTML = response.tags;
+            document.getElementById("ptt_news").innerHTML = response.news;
+          },
+        });
+      }
+    </script>
+    <script>
+      function get_news_tag() {
+        text_input = document.getElementById("text_input").value;
+        console.log(text_input);
+        $.ajax({
+          type: "POST",
+          crossDomain: true,
+          headers: {
+            accept: "application/json",
+            "Access-Control-Allow-Origin": "*/*",
+          },
+          url: "http://140.118.127.72:8787/get_tag",
+          data: {
+            text: text_input,
+          },
+          datatype: "json",
+          success: function (response) {
+            console.log(response.tags);
+            document.getElementById("text_tags").innerHTML = response.tags;
+            document.getElementById("text_news").innerHTML = response.news;
+          },
+        });
+      }
+    </script>
+    <div class="web">
+      <div id="bar">
+        <button class="word" href="#item1">Text</button>
+        <button class="word" href="#item2">PTT</button>
+        <button class="word" href="#item3">音檔</button>
+      </div>
+
+      <div id="item1" class="items">
+        <div class="text">
+          <textarea
+            id="text_input"
+            cols="50"
+            rows="15"
+            style="overflow-y: scroll"
+          ></textarea>
+          <button onclick="get_news_tag()">提交</button>
+        </div>
+        <div id="labels">類別：</div>
+        <div id="text_tags" class="output"></div>
+        <div id="news">報社：</div>
+        <div id="text_news" class="output"></div>
+      </div>
+
+      <div id="item2" class="items">
+        <div class="ptt">
+          <div class="text">
+            <input id="ptt_url" placeholder="請輸入網址" />
+            <button onclick="ptt_crawler()">提交</button>
+          </div>
+          <textarea
+            id="ptt_show"
+            cols="50"
+            rows="15"
+            style="overflow-y: scroll"
+          ></textarea>
+          <div id="labels">類別：</div>
+          <div id="ptt_tags" class="output"></div>
+          <div id="news">報社：</div>
+          <div id="ptt_news" class="output"></div>
+        </div>
+      </div>
+
+      <div id="item3" class="items">
+        <div class="audio">
+          <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+          <script src="https://xiangyuecn.github.io/Recorder/recorder.mp3.min.js"></script>
+          <script src="https://xiangyuecn.github.io/Recorder/recorder.wav.min.js"></script>
+          <input type="button" onclick="startRec()" value="開始錄音" />
+          <input type="button" onclick="stopRec()" value="停止錄音" />
+          <input type="File" id="upload_file" />
+          <input type="Submit" onclick="uploadFile()" value="確認上傳" />
+          <hr />
+          <div id='audio_div'></div>
+          <input type="button" onclick="uploadRec()" value="上傳錄音" />
+          <p>辨識結果</p>
+          <div id="wav_output"></div>
+          <br>
+          <br>
+          <p>相關新聞</p>
+          <div id='relate_news'>
+            
+          </div>
+
+          <script>
+            function uploadFile() {
+              console.log("uploading...");
+              var form = new FormData();
+              var audio = document.getElementById("upload_file").files[0];
+              console.log(audio);
+              form.append("upfile", audio, "recorder.wav");
+              //和普通form表單並無二致，後端接收到upfile參數的文件，文件名為recorder.mp3 //直接用ajax上傳
+              console.log(form);
+
+              $.ajax({
+                //上传接口地址,
+                url: "http://140.118.127.72:8787/upload_wav",
+                type: "POST",
+                async: false,
+                contentType: false, //让xhr自动处理Content-Type header，multipart/form-data需要生成随机的boundary
+                processData: false, //不要处理data，让xhr自动处理
+                data: form,
+                success: function (v) {
+                  console.log(v)
+                  // asr output 
+                  var node = document.getElementById("wav_output");
+                  console.log("上傳成功", v);
+                  node.innerHTML = v.text;
+                  
+                  var titles = v.title_list;
+                  var contents = v.content_list;
+                  var news_node = document.getElementById('relate_news');
+                  var html='';
+                  for(var i=0;i<titles.length;i++){
+                    html += i+1 + '.  '
+                    html += titles[i];
+                    html += '<br>';
+                    html += '<div> <div hidden>' + contents[i] +' </div>';
+                    html += '<button  onclick=show_more(this)>show more</button>  </div>'
+                    html += '<br><br>';
+                  }
+                  news_node.innerHTML = html
+
+
+                },
+                error: function (s) {
+                  console.error("上傳失敗", s);
+                },
+              });
+            }
+          </script>
+          <script>
+            var rec;
+            function startRec() {
+              rec = Recorder({
+                type: "wav",
+                sampleRate: 16000,
+                bitRate: 16, //mp3格式，指定采样率hz、比特率kbps，其他参数使用默认配置；注意：是数字的参数必须提供数字，不要用字符串；需要使用的type类型，需提前把格式支持文件加载进来，比如使用wav格式需要提前加载wav.js编码引擎
+                onProcess: function (
+                  buffers,
+                  powerLevel,
+                  bufferDuration,
+                  bufferSampleRate,
+                  newBufferIdx,
+                  asyncEnd
+                ) {
+                  //录音实时回调，大约1秒调用12次本回调
+                  //可利用extensions/waveview.js扩展实时绘制波形
+                  //可利用extensions/sonic.js扩展实时变速变调，此扩展计算量巨大，onProcess需要返回true开启异步模式
+                },
+              });
+              //打開麥克風授權獲得相關資源
+              rec.open(
+                function () {
+                  //開始錄音
+                  rec.start();
+                },
+                function (msg, isUserNotAllow) {
+                  //用戶拒絕了權限或瀏覽器不支持
+                  alert(
+                    (isUserNotAllow ? "用戶拒絕了權限，" : "") +
+                      "無法錄音:" +
+                      msg
+                  );
+                }
+              );
+            }
+          </script>
+
+          <script>
+            function show_more(node){
+              var parent = node.parentNode;
+              var children = parent.children;
+              if (children[0].style.display != 'block'){
+                children[0].style.display = 'block';
+              }
+              else{
+                children[0].style.display = 'none';
+              }
+              
+            }
+            function uploadRec() {
+              //停止錄音，得到了錄音文件blob二進位對象，想幹嘛就幹嘛
+              /* blob文件對象，可以用FileReader讀取出內容 ，或者用FormData上傳，本例直接上傳二進位文件 ，
+                對於普通application/x-www-form-urlencoded表單上傳 ，請參考github裡面的例子 */
+              var form = new FormData();
+              form.append("upfile", rec_blob, "recorder.wav");
+              //和普通form表單並無二致，後端接收到upfile參數的文件，文件名為recorder.mp3 //直接用ajax上傳
+              console.log(form);
+              $.ajax({
+                //上传接口地址,
+                url: "http://140.118.127.72:8787/upload_wav",
+                type: "POST",
+                contentType: false, //让xhr自动处理Content-Type header，multipart/form-data需要生成随机的boundary
+                processData: false, //不要处理data，让xhr自动处理
+                data: form,
+                success: function (v) {
+                  console.log(v)
+                  var node = document.getElementById("wav_output");
+                  console.log("上傳成功", v);
+                  node.innerHTML = v.text;
+                  // for (var i = 0; i < v.texts.length; i++) {
+                  //   node.innerHTML += v.texts[i] + "<br>";
+                  //   break;
+                  // }
+                  var titles = v.title_list;
+                  var contents = v.content_list;
+                  var news_node = document.getElementById('relate_news');
+                  var html='';
+                  for(var i=0;i<titles.length;i++){
+                    html += i+1 + '.  '
+                    html += titles[i];
+                    html += '<br>';
+                    html += '<div> <div hidden>' + contents[i] +' </div>';
+                    html += '<button  onclick=show_more(this)>show more</button>  </div>'
+                    html += '<br><br>';
+                  }
+                  news_node.innerHTML = html
+                },
+                error: function (s) {
+                  console.error("上傳失敗", s);
+                },
+              });
+            }
+          </script>
+          <script>
+            var audio = document.createElement("audio");
+            var removed_url;
+            var rec_blob;
+            var removed = 0;
+            function stopRec() {
+              //停止錄音，得到了錄音文件blob二進位對象，想幹嘛就幹嘛
+              rec.stop(
+                function (blob, duration) {
+                  var node = document.getElementById('audio_div');
+                  if (removed == 1) {
+                    console.log(1);
+                    //URL.revokeObjectURL(removed_url);
+                    //var audio = document.createElement("audio");
+                    audio.controls = true;
+                    // document.body.appendChild(audio);
+                    node.appendChild(audio)
+                    //非常簡單的就能拿到blob音頻url
+                    audio.src = URL.createObjectURL(blob);
+                    //把blob存起來
+                    rec_blob = blob;
+                  } else {
+                    console.log(0);
+                    //var audio = document.createElement("audio");
+                    audio.controls = true;
+                    // document.body.appendChild(audio);
+                    node.append(audio);
+                    //非常簡單的就能拿到blob音頻url
+                    audio.src = URL.createObjectURL(blob);
+                    removed_url = audio.src;
+                    //把blob存起來
+                    rec_blob = blob;
+                    removed = 1;
+                    //audio.play();
+                  }
+                },
+                function (msg) {
+                  alert("錄音失敗:" + msg);
+                }
+              );
+            }
+          </script>
+        </div>
+      </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script type="text/javascript" src="web_js.js"></script>
+    <!-- ... ajax test ... -->
+  </body>
+</html>

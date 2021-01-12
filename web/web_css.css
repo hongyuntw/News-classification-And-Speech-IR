@@ -1,0 +1,30 @@
+#bar {
+  text-align: center;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12)
+}
+.word {
+  background-color: #c3c3c3;
+  display: inline-block;
+  line-height: 350%;
+  width: 130px;
+  height: 50px;
+}
+.items {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  flex-direction: column;
+  padding: 30px 100px 0 100px;
+}
+.text{
+  margin: auto;
+}
+.ptt{
+  margin: auto;
+}
+.output{
+  margin: auto;
+  padding: 30px;
+}
