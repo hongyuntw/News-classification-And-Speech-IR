@@ -1,4 +1,4 @@
-# speech_and_news_classify
+# News-classification-And-Speech-IR
 
 
 ## Text classification
