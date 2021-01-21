@@ -3,7 +3,7 @@
 
 ## Text classification
 
-給定文本/ptt，用train好的BERT model predict內容類別，即可能屬於哪間報社(自由時報,中國時報，聯合報)
+給定文本/ptt，用train好的BERT model predict內容類別(娛樂,社會,生活,國際,財經,娛樂,體育)，即可能屬於哪間報社(自由時報,中國時報，聯合報)
 
 
 ## ASR + IR
